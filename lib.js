@@ -5,6 +5,11 @@ const helpers = require("./helpers");
 const skymavisApikey = "-your-private-key-";
 const commissionStats = {};
 
+/**
+ * Retrieves commission information from a transaction hash.
+ * @param {string} txHash - The transaction hash to analyze.
+ * @returns {Promise<Object>} An object containing commission statistics for each game.
+ */
 async function getCommissionFromTransaction(txHash) {
   const txInternalLogsResponse = await axios.request({
     method: "get",
@@ -49,6 +54,13 @@ async function getCommissionFromTransaction(txHash) {
   return gameStats;
 }
 
+/**
+ * Processes a specific block or the latest block to extract commission data.
+ * @param {number} [targetBlockNumber] - The block number to process. If not provided, the latest block will be used.
+ * @param {ethers.Provider} provider - The Ethereum provider instance.
+ * @returns {Promise<Object>} An object containing game statistics, block number, and block timestamp.
+ * @throws {Error} If there's an error processing the block.
+ */
 const processBlocks = async (targetBlockNumber, provider) => {
   try {
     let blockNumber = targetBlockNumber || (await provider.getBlockNumber());
@@ -117,6 +129,11 @@ const processBlocks = async (targetBlockNumber, provider) => {
   }
 };
 
+/**
+ * Analyzes a block result and updates the commission statistics.
+ * @param {Object} resultBlock - The block result containing game statistics and timestamp.
+ * @param {Function} [onCommissionStatsUpdated] - Callback function to be called when commission stats are updated.
+ */
 function analyzeBlock(resultBlock, onCommissionStatsUpdated) {
   const { gameStats, blockTimestamp } = resultBlock;
   const date = new Date(blockTimestamp * 1000);
@@ -154,14 +171,21 @@ function analyzeBlock(resultBlock, onCommissionStatsUpdated) {
   }
 }
 
-async function listenForBlocks(
-  options = {
-    uniqueBlock: false,
-    block: undefined,
-    onBlockProcessed: (blockResult) => {},
-    onCommissionStatsUpdated: (commissionStats) => {},
-  }
-) {
+/**
+ * Listens for new blocks and processes them to extract commission data.
+ * @param {Object} [options] - Configuration options for block listening.
+ * @param {boolean} [options.uniqueBlock=false] - Whether to process only a single block.
+ * @param {number} [options.block] - The specific block number to process when uniqueBlock is true.
+ * @param {Function} [options.onBlockProcessed] - Callback function to be called after each block is processed.
+ * @param {Function} [options.onCommissionStatsUpdated] - Callback function to be called when commission stats are updated.
+ * @returns {Promise<void>}
+ */
+async function listenForBlocks(options = {
+  uniqueBlock: false,
+  block: undefined,
+  onBlockProcessed: (blockResult) => {},
+  onCommissionStatsUpdated: (commissionStats) => {},
+}) {
   const provider = new ethers.JsonRpcProvider("https://api.roninchain.com/rpc");
   let latestBlock = await provider.getBlockNumber();
   let currentBlock =
